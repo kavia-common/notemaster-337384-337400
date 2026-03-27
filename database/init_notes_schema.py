@@ -56,13 +56,21 @@ def main() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 content TEXT NOT NULL,
+                pinned INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
                 updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
             )
             """,
         )
+
+        # Lightweight migration: add pinned column if the DB already existed before pinning.
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(notes)").fetchall()]
+        if "pinned" not in cols:
+            _execute(conn, "ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+
         _execute(conn, "CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at)")
         _execute(conn, "CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title)")
+        _execute(conn, "CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)")
 
         _execute(
             conn,
